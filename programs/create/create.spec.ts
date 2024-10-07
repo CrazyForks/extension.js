@@ -72,7 +72,7 @@ describe('extension create', () => {
 
         await extensionCreate(templatePath, {
           template: template.name,
-          noInstall: true
+          install: true
         })
 
         // UI frameworks will use either tsx or jsx files.
@@ -80,7 +80,7 @@ describe('extension create', () => {
         // TODO: cezaraugusto this is not going to scale well
         // but better than nothing for now.
         const ext = template.uiFramework
-          ? template.uiFramework === 'vue'
+          ? template.uiFramework === 'vue' || template.uiFramework === 'svelte'
             ? 'ts'
             : 'tsx'
           : template.configFiles?.includes('tsconfig.json')
@@ -95,13 +95,22 @@ describe('extension create', () => {
             ).toBeTruthy()
           }
 
-          // Expect [uiContext]/[uiContext].[ext] for scripts
-          expect(
-            fileExists(template.name, `${context.toLowerCase()}/scripts.${ext}`)
-          ).toBeTruthy()
+          if (template.name.includes('esm')) {
+            expect(
+              fileExists(template.name, `${context.toLowerCase()}/scripts.mjs`)
+            ).toBeTruthy()
+            // Expect [uiContext]/[uiContext].[ext] for scripts
+          } else {
+            expect(
+              fileExists(
+                template.name,
+                `${context.toLowerCase()}/scripts.${ext}`
+              )
+            ).toBeTruthy()
+          }
 
           // Expect [uiContext]/styles.sass|less|css for styles
-          if (template.name?.includes('sass')) {
+          if (template.css === 'sass') {
             expect(
               fileExists(template.name, `${context.toLowerCase()}/styles.scss`)
             ).toBeTruthy()
@@ -121,7 +130,12 @@ describe('extension create', () => {
               context?.charAt(0).toUpperCase() + context?.slice(1)
 
             // Vue uses its own file extension
-            const fileExt = template.uiFramework === 'vue' ? 'vue' : ext
+            const fileExt =
+              template.uiFramework === 'vue'
+                ? 'vue'
+                : template.uiFramework === 'svelte'
+                  ? 'svelte'
+                  : ext
 
             expect(
               fileExists(
@@ -135,14 +149,14 @@ describe('extension create', () => {
         // Expect images/extension_16.png and expect images/extension_16.png
         if (template.name !== 'init') {
           expect(
-            fileExists(template.name, 'images/extension_16.png')
-          ).toBeTruthy()
-          expect(
             fileExists(template.name, 'images/extension_48.png')
           ).toBeTruthy()
-          // expect(
-          //   fileExists(template.name, 'images/extension_128.png')
-          // ).toBeTruthy()
+        }
+
+        if (template.uiContext?.includes('action')) {
+          expect(
+            fileExists(template.name, 'images/extension_16.png')
+          ).toBeTruthy()
         }
 
         // Expect manifest.json to exist

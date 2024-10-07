@@ -2,6 +2,7 @@ import fs from 'fs'
 import {type Compiler} from 'webpack'
 import {type FilepathList, type PluginInterface} from '../../../webpack-types'
 import {getAssetsFromHtml} from '../html-lib/utils'
+import * as utils from '../../../lib/utils'
 import * as messages from '../../../lib/messages'
 
 export class ThrowIfRecompileIsNeeded {
@@ -38,7 +39,12 @@ export class ThrowIfRecompileIsNeeded {
       if (htmlFile) {
         if (!fs.existsSync(htmlFile)) {
           const manifest = require(this.manifestPath)
-          const manifestName = manifest.name || 'Extension.js'
+          const patchedManifest = utils.filterKeysForThisBrowser(
+            manifest,
+            'chrome'
+          )
+
+          const manifestName = patchedManifest.name || 'Extension.js'
           console.error(
             messages.manifestFieldError(manifestName, key, htmlFile)
           )
@@ -74,10 +80,7 @@ export class ThrowIfRecompileIsNeeded {
             this.hasEntriesChanged(updatedCssEntries, css) ||
             this.hasEntriesChanged(updatedJsEntries, js)
           ) {
-            const manifestName = require(this.manifestPath).name
-            console.log(
-              messages.serverRestartRequiredFromHtml(manifestName, changedFile)
-            )
+            console.log(messages.serverRestartRequiredFromHtml(changedFile))
           }
         }
 

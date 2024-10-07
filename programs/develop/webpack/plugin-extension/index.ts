@@ -28,41 +28,49 @@ import {isUsingReact} from '../plugin-js-frameworks/js-tools/react'
 import {isUsingPreact} from '../plugin-js-frameworks/js-tools/preact'
 import {isUsingTypeScript} from '../plugin-js-frameworks/js-tools/typescript'
 import {isUsingVue} from '../plugin-js-frameworks/js-tools/vue'
+import {isUsingSvelte} from '../plugin-js-frameworks/js-tools/svelte'
 
 export class ExtensionPlugin {
   public static readonly name: string = 'plugin-extension'
 
   public readonly manifestPath: string
   public readonly browser: DevOptions['browser']
-  public readonly mode: DevOptions['mode']
 
-  constructor(options: PluginInterface & {mode: DevOptions['mode']}) {
+  constructor(options: PluginInterface) {
     this.manifestPath = options.manifestPath
     this.browser = options.browser || 'chrome'
-    this.mode = options.mode
   }
 
   public apply(compiler: Compiler): void {
     const manifestPath = this.manifestPath
-    const manifestFieldsData = getManifestFieldsData({manifestPath})
-    const specialFoldersData = getSpecialFoldersData({manifestPath})
-
-    new ResolvePlugin({
+    const manifestFieldsData = getManifestFieldsData({
       manifestPath,
-      includeList: {
-        ...(specialFoldersData?.pages || {}),
-        ...(specialFoldersData?.scripts || {})
-      },
-      excludeList: specialFoldersData.public,
-      loaderOptions: {
-        jsx:
-          isUsingReact(path.dirname(this.manifestPath)) ||
-          isUsingPreact(path.dirname(this.manifestPath)) ||
-          isUsingVue(path.dirname(this.manifestPath)),
-        typescript: isUsingTypeScript(path.dirname(this.manifestPath)),
-        minify: this.mode === 'production'
-      }
-    }).apply(compiler)
+      browser: this.browser
+    })
+    const specialFoldersData = getSpecialFoldersData({
+      manifestPath,
+      browser: this.browser
+    })
+
+    process.env.EXPERIMENTAL_EXTENSION_RESOLVER_PLUGIN === 'true' &&
+      new ResolvePlugin({
+        manifestPath,
+        browser: this.browser,
+        includeList: {
+          ...(specialFoldersData?.pages || {}),
+          ...(specialFoldersData?.scripts || {})
+        },
+        excludeList: specialFoldersData.public,
+        loaderOptions: {
+          jsx:
+            isUsingReact(path.dirname(this.manifestPath)) ||
+            isUsingPreact(path.dirname(this.manifestPath)) ||
+            isUsingVue(path.dirname(this.manifestPath)) ||
+            isUsingSvelte(path.dirname(this.manifestPath)),
+          typescript: isUsingTypeScript(path.dirname(this.manifestPath)),
+          minify: compiler.options.mode === 'production'
+        }
+      }).apply(compiler)
 
     // Generate a manifest file with all the assets we need
     new ManifestPlugin({

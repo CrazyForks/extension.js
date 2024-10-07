@@ -1,7 +1,7 @@
 import path from 'path'
 import fs from 'fs'
 
-export function getLocaleFields(
+export function localesFields(
   context: string,
   manifestPath: string
 ): string[] | undefined {
@@ -14,10 +14,12 @@ export function getLocaleFields(
     for (const locale of fs.readdirSync(localesFolder)) {
       const localeDir = path.join(localesFolder, locale)
 
-      for (const localeEntity of fs.readdirSync(localeDir)) {
-        localeFiles.push(
-          path.join(context, '_locales', locale, localeEntity) as string
-        )
+      if (localeDir && fs.statSync(localeDir).isDirectory()) {
+        for (const localeEntity of fs.readdirSync(localeDir)) {
+          localeFiles.push(
+            path.join(context, '_locales', locale, localeEntity) as string
+          )
+        }
       }
     }
   }

@@ -1,5 +1,4 @@
 import {HashRouter as Router, Switch, Route, Link} from 'react-router-dom'
-import 'sakura.css'
 import './styles.css'
 import reactLogo from '../images/react.png'
 
@@ -14,8 +13,11 @@ function Home() {
           width="120px"
         />
         <br />
-        Welcome to your React Router DOM Extension.
+        Welcome to your React Router Extension.
       </h1>
+      <pre>
+        <code>{window.location.href}</code>
+      </pre>
     </main>
   )
 }
@@ -31,9 +33,11 @@ function About() {
           width="120px"
         />
         <br />
-        About
+        Learn more about your React Router DOM Extension.
       </h1>
-      <p>I am an extension using React Router DOM.</p>
+      <pre>
+        <code>{window.location.href}</code>
+      </pre>
     </main>
   )
 }
@@ -49,9 +53,11 @@ function Users() {
           width="120px"
         />
         <br />
-        Users
+        List of users of your React Router DOM Extension.
       </h1>
-      <p>Developers, developers, developers.</p>
+      <pre>
+        <code>{window.location.href}</code>
+      </pre>
     </main>
   )
 }
@@ -61,8 +67,7 @@ export default function NewTabApp() {
     <Router>
       <div>
         <nav>
-          <Link to="/">Home</Link>
-          <Link to="/about">About</Link>
+          <Link to="/">Home</Link> <Link to="/about">About</Link>{' '}
           <Link to="/users">Users</Link>
         </nav>
 

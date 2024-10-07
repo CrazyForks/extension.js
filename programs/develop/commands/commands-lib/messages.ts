@@ -8,7 +8,9 @@ import {
   brightGreen,
   underline,
   magenta,
-  cyan
+  cyan,
+  bold,
+  brightBlue
 } from '@colors/colors/safe'
 import {Manifest} from '../../types'
 import {StartOptions} from '../start'
@@ -19,23 +21,25 @@ function getLoggingPrefix(type: 'warn' | 'info' | 'error' | 'success'): string {
     type === 'warn'
       ? brightYellow('►►►')
       : type === 'info'
-        ? magenta('►►►')
+        ? cyan('►►►')
         : type === 'error'
-          ? red('✖︎✖︎✖︎')
+          ? `${bold(red('ERROR'))} in ${'Extension.js'} ${red('✖︎✖︎✖︎')}`
           : brightGreen('►►►')
   // return `🧩 ${'Extension.js'} ${arrow}`
   return `${arrow}`
 }
 
-export function manifestNotFoundError() {
+export function manifestNotFoundError(manifestPath: string) {
   return (
-    `${getLoggingPrefix('error')} Manifest file not found. ` +
-    'Ensure the path to your extension exists and try again.'
+    `${getLoggingPrefix('error')} Manifest file not found.\n\n` +
+    'Ensure the path to your extension exists and try again.\n' +
+    `${red('NOT FOUND')} ${underline(manifestPath)}`
   )
 }
 
 export function building(browser: DevOptions['browser']): string {
-  const extensionOutput = browser === 'firefox' ? 'Add-on' : 'Extension'
+  const extensionOutput =
+    browser === 'firefox' || browser === 'gecko-based' ? 'Add-on' : 'Extension'
 
   return (
     `${getLoggingPrefix('info')} Building ${capitalizedBrowserName(browser)} ` +
@@ -53,9 +57,6 @@ export function runningInProduction(
 
   const {name, version, hostPermissions, permissions} = manifest
 
-  const defaultLocale = getLocales(projectDir, manifest).defaultLocale
-  const otherLocales = getLocales(projectDir, manifest).otherLocales.join(', ')
-  const locales = `${defaultLocale} ${otherLocales && ', ' + otherLocales}`
   const hasHost = hostPermissions && hostPermissions.length
   const hasPermissions = permissions && permissions.length
 
@@ -65,7 +66,6 @@ export function runningInProduction(
  🧩 ${brightGreen('Extension.js')} ${gray(`${packageVersion}`)}
 ${`    Extension Name        `} ${gray(name)}
 ${`    Extension Version     `} ${gray(version)}
-${`    Locales               `} ${gray(locales)}
 ${`    Host Permissions      `} ${gray(
     hasHost ? hostPermissions.join(', ') : 'Browser defaults'
   )}
@@ -79,8 +79,9 @@ export function ready(
   mode: DevOptions['mode'],
   browser: DevOptions['browser']
 ) {
-  const modeColor = mode === 'production' ? magenta : magenta
-  const extensionOutput = browser === 'firefox' ? 'Add-on' : 'Extension'
+  const modeColor = mode === 'production' ? brightBlue : brightBlue
+  const extensionOutput =
+    browser === 'firefox' || browser === 'gecko-based' ? 'Add-on' : 'Extension'
 
   return (
     `${getLoggingPrefix('success')} ` +
@@ -115,7 +116,7 @@ export function buildWebpack(
   )} extension using ${capitalizedBrowserName(browser)} defaults...\n\n`
   const buildTime = `\nBuild completed in ${(
     (statsJson?.time || 0) / 1000
-  ).toFixed(2)} seconds.\n`
+  ).toFixed(2)} seconds.`
   const buildTarget = `Build Target: ${gray(capitalizedBrowserName(browser))}\n`
   const buildStatus = `Build Status: ${
     stats?.hasErrors() ? red('Failed') : brightGreen('Success')
@@ -145,43 +146,41 @@ export function buildSuccess() {
 
 export function fetchingProjectPath(owner: string, project: string) {
   return (
-    `${getLoggingPrefix('success')} Fetching data...\n\n` +
+    `${getLoggingPrefix('info')} Fetching data...\n` +
     `${gray('URL')} ${underline(`https://github.com/${owner}/${project}`)}`
   )
 }
 
 export function downloadingProjectPath(projectName: string) {
-  return `${getLoggingPrefix('success')} Downloading ${cyan(projectName)}...`
+  return `${getLoggingPrefix('info')} Downloading ${cyan(projectName)}...`
 }
 
-export function creatingProjectPath(projectName: string) {
+export function creatingProjectPath(projectPath: string) {
   return (
-    `\n${getLoggingPrefix('success')} Creating a new browser extension...\n\n` +
-    `${gray('PATH')} ${underline(`${process.cwd()}/${projectName}`)}`
+    `\n${getLoggingPrefix('info')} Creating a new browser extension...\n` +
+    `${gray('PATH')} ${underline(`${projectPath}`)}`
   )
 }
 
 export function noGitIgnoreFound(projectDir: string) {
   return (
-    `${getLoggingPrefix('success')} No ${brightYellow('.gitignore')} found, ` +
-    `zipping all the content inside path:\n\n` +
+    `${getLoggingPrefix('info')} No ${brightYellow('.gitignore')} found, ` +
+    `zipping all the content inside path:\n` +
     `${gray('PATH')} ${underline(projectDir)}`
   )
 }
 
 export function packagingSourceFiles(zipPath: string) {
   return (
-    `${getLoggingPrefix('success')} Packaging source files. ` +
-    `Files in ${brightYellow('.gitignore')} will be excluded...\n\n` +
+    `${getLoggingPrefix('info')} Packaging source files. ` +
+    `Files in ${brightYellow('.gitignore')} will be excluded...\n` +
     `${gray('PATH')} ${underline(zipPath)}.`
   )
 }
 
 export function packagingDistributionFiles(zipPath: string) {
   return (
-    `${getLoggingPrefix(
-      'success'
-    )} Packaging extension distribution files...\n\n` +
+    `${getLoggingPrefix('info')} Packaging extension distribution files...\n` +
     `${gray('PATH')} ${underline(zipPath)}`
   )
 }
@@ -210,7 +209,7 @@ export function treeWithDistFilesbrowser(
   return (
     `${'📦 Package name:'} ${brightYellow(`${name}.${ext}`)}, ` +
     `${'Target Browser:'} ${`${capitalizedBrowserName(browser)}`}` +
-    `\n   ${gray('└─')} ${underline(`${zipPath}`)} (distribution)`
+    `\n   ${gray('└─')} ${underline(`${zipPath}`)} ${gray('(distribution)')}`
   )
 }
 
@@ -230,40 +229,40 @@ export function treeWithSourceFiles(
 export function failedToCompressError(error: any) {
   return `${getLoggingPrefix(
     'error'
-  )} Failed to compress extension package. ${error}`
+  )} Failed to compress extension package.\n${red(error)}`
 }
 
 export function writingTypeDefinitions(manifest: Manifest) {
   return (
-    `${getLoggingPrefix('info')} ${manifest.name} (v${manifest.version}) ` +
-    'has no type definitions. Writing...'
+    `${getLoggingPrefix('info')} ` +
+    `Writing type definitions for ${cyan(manifest.name || '')}...`
   )
 }
 
-export function writeTypeDefinitionsError(error: any) {
+export function writingTypeDefinitionsError(error: any) {
   return `${getLoggingPrefix(
     'error'
-  )} Failed to write the extension type definition. ${red(error)}`
+  )} Failed to write the extension type definition.\n${red(error)}`
 }
 
 export function downloadingText(url: string) {
   return (
-    `${getLoggingPrefix('success')} Downloading extension...\n\n` +
+    `${getLoggingPrefix('info')} Downloading extension...\n` +
     `${gray('URL')} ${underline(url)}`
   )
 }
 
 export function unpackagingExtension(zipFilePath: string) {
   return (
-    `${getLoggingPrefix('success')} Unpackaging browser extension...\n\n` +
+    `${getLoggingPrefix('info')} Unpackaging browser extension...\n` +
     `${gray('PATH')} ${underline(zipFilePath)}`
   )
 }
 
 export function unpackagedSuccessfully() {
   return `${getLoggingPrefix(
-    'success'
-  )} Browser extension unpackaged successfully. Compiling...`
+    'info'
+  )} Browser extension unpackaged ${brightGreen('successfully')}. Compiling...`
 }
 
 export function failedToDownloadOrExtractZIPFileError(error: any) {
@@ -294,29 +293,6 @@ export function failedToDownloadOrExtractZIPFileError(error: any) {
 
 function capitalizedBrowserName(browser: DevOptions['browser']) {
   return browser!.charAt(0).toUpperCase() + browser!.slice(1)
-}
-
-function getLocales(projectPath: string, manifest: Record<string, any>) {
-  const defaultLocale = manifest.default_locale as string
-
-  // Get the list of all locale folders
-  const localesDir = path.join(projectPath, '_locales')
-
-  if (!fs.existsSync(localesDir)) {
-    return {
-      defaultLocale: 'Browser defaults',
-      otherLocales: []
-    }
-  }
-
-  const localeFolders = fs
-    .readdirSync(localesDir)
-    .filter((folder) => folder !== defaultLocale)
-
-  return {
-    defaultLocale,
-    otherLocales: localeFolders
-  }
 }
 
 function getFileSize(fileSizeInBytes: number): string {
@@ -382,10 +358,39 @@ function getAssetsTree(assets: StatsAsset[] | undefined): string {
   return `.\n${printTree(assetTree)}`
 }
 
-export function isUsingExtensionConfig(integration: any) {
+export function isUsingExperimentalConfig(integration: any) {
   return (
     `${getLoggingPrefix('info')} ` +
-    `is using ${magenta(integration)}. ` +
+    `Using ${magenta(integration)}. ` +
     `${brightYellow('This is very experimental')}.`
+  )
+}
+
+export function installingDependencies() {
+  return `${getLoggingPrefix('info')} ` + `Installing project dependencies...`
+}
+
+export function installingDependenciesFailed(
+  gitCommand: string,
+  gitArgs: string[],
+  code: number | null
+) {
+  return (
+    `${getLoggingPrefix('error')} Command ${gitCommand} ${gitArgs.join(' ')} ` +
+    `failed with exit code ${code}`
+  )
+}
+
+export function installingDependenciesProcessError(error: any) {
+  return (
+    `${getLoggingPrefix('error')} Child process error: Can't ` +
+    `install project dependencies.\n${red(error)}`
+  )
+}
+
+export function cantInstallDependencies(error: any) {
+  return (
+    `${getLoggingPrefix('error')} Can't install project dependencies. ` +
+    `${red(error.message || error.toString())}`
   )
 }

@@ -1,11 +1,13 @@
-import type webpack from 'webpack'
+import {Compiler} from 'webpack'
 import {
   type FilepathList,
   type PluginInterface,
   type Manifest
 } from '../../../webpack-types'
 import * as messages from '../../../lib/messages'
-import {DevOptions} from '../../../../module'
+import * as utils from '../../../lib/utils'
+import {DevOptions} from '../../../../commands/dev'
+import {CHROMIUM_BASED_BROWSERS} from '../../../lib/constants'
 
 export class AddPublicPathForMainWorld {
   public readonly manifestPath: string
@@ -20,25 +22,23 @@ export class AddPublicPathForMainWorld {
     this.excludeList = options.excludeList || {}
   }
 
-  public apply(compiler: webpack.Compiler): void {
-    const manifest: Manifest = require(this.manifestPath)
+  public apply(_compiler: Compiler): void {
+    const initialManifest: Manifest = require(this.manifestPath)
+    const manifest = utils.filterKeysForThisBrowser(
+      initialManifest,
+      this.browser
+    )
+
     if (
       manifest.content_scripts?.some(
         // @ts-expect-error - TS doesn't know about content_scripts
         (cs) => cs.world && cs.world.toLowerCase() === 'main'
       )
     ) {
-      if (!manifest.id) {
-        console.error(messages.noExtensionIdError(manifest.name || ''))
+      if (CHROMIUM_BASED_BROWSERS.includes(this.browser) && !manifest.key) {
+        console.error(messages.noExtensionIdError())
         process.exit(1)
       }
-
-      if (this.browser === 'firefox') {
-        compiler.options.output.publicPath = `moz-extension://${manifest.id}/`
-        return
-      }
-
-      compiler.options.output.publicPath = `${this.browser}-extension://${manifest.id}/`
     }
   }
 }

@@ -22,6 +22,7 @@ export interface BuildOptions {
   zip?: boolean
   zipSource?: boolean
   polyfill?: boolean
+  silent?: boolean
 }
 
 export async function extensionBuild(
@@ -34,7 +35,9 @@ export async function extensionBuild(
     !pathOrRemoteUrl?.startsWith('http') &&
     !fs.existsSync(path.join(projectPath, 'manifest.json'))
   ) {
-    console.log(messages.manifestNotFoundError())
+    console.log(
+      messages.manifestNotFoundError(path.join(projectPath, 'manifest.json'))
+    )
     process.exit(1)
   }
 
@@ -69,7 +72,9 @@ export async function extensionBuild(
           return reject(err)
         }
 
-        console.log(messages.buildWebpack(projectPath, stats, browser))
+        if (!buildOptions?.silent) {
+          console.log(messages.buildWebpack(projectPath, stats, browser))
+        }
 
         if (buildOptions?.zip || buildOptions?.zipSource) {
           await generateZip(projectPath, {...buildOptions, browser})

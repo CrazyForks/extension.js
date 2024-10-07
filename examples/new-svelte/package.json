@@ -1,0 +1,19 @@
+{
+  "private": true,
+  "name": "new-svelte",
+  "description": "An Extension.js example.",
+  "version": "0.0.1",
+  "author": {
+    "name": "Akash Prasad",
+    "email": "devakash256@gmail.com",
+    "url": "https://akashprasad.xyz/"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "svelte": "4.2.19"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3",
+    "@tsconfig/svelte": "5.0.4"
+  }
+}

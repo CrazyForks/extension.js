@@ -7,7 +7,6 @@ import {
 import MiniCssExtractPlugin from 'mini-css-extract-plugin'
 import {commonStyleLoaders} from './common-style-loaders'
 import {PluginInterface} from '../webpack-types'
-import {type DevOptions} from '../../commands/dev'
 import {maybeUseSass} from './css-tools/sass'
 import {maybeUseLess} from './css-tools/less'
 import {maybeUseStylelint} from './css-tools/stylelint'
@@ -16,14 +15,13 @@ export class CssPlugin {
   public static readonly name: string = 'plugin-css'
 
   public readonly manifestPath: string
-  public readonly mode: DevOptions['mode']
 
-  constructor(options: PluginInterface & {mode: DevOptions['mode']}) {
+  constructor(options: PluginInterface) {
     this.manifestPath = options.manifestPath
-    this.mode = options.mode
   }
 
   private async configureOptions(compiler: Compiler) {
+    const mode = compiler.options.mode || 'development'
     const projectPath = path.dirname(this.manifestPath)
 
     const plugins: WebpackPluginInstance[] = [new MiniCssExtractPlugin()]
@@ -39,16 +37,9 @@ export class CssPlugin {
         exclude: /\.module\.css$/,
         oneOf: [
           {
-            resourceQuery: /is_content_css_import=true/,
             use: await commonStyleLoaders(projectPath, {
-              mode: this.mode,
-              useMiniCssExtractPlugin: false
-            })
-          },
-          {
-            use: await commonStyleLoaders(projectPath, {
-              mode: this.mode,
-              useMiniCssExtractPlugin: this.mode === 'production'
+              mode: mode,
+              useMiniCssExtractPlugin: mode === 'production'
             })
           }
         ]
@@ -57,16 +48,9 @@ export class CssPlugin {
         test: /\.module\.css$/,
         oneOf: [
           {
-            resourceQuery: /is_content_css_import=true/,
             use: await commonStyleLoaders(projectPath, {
-              mode: this.mode,
-              useMiniCssExtractPlugin: false
-            })
-          },
-          {
-            use: await commonStyleLoaders(projectPath, {
-              mode: this.mode,
-              useMiniCssExtractPlugin: this.mode === 'production'
+              mode: mode,
+              useMiniCssExtractPlugin: mode === 'production'
             })
           }
         ]
@@ -77,8 +61,8 @@ export class CssPlugin {
       Boolean
     )
 
-    const maybeInstallSass = await maybeUseSass(projectPath, this.mode)
-    const maybeInstallLess = await maybeUseLess(projectPath, this.mode)
+    const maybeInstallSass = await maybeUseSass(projectPath, mode)
+    const maybeInstallLess = await maybeUseLess(projectPath, mode)
     loaders.push(...maybeInstallSass)
     loaders.push(...maybeInstallLess)
 
@@ -89,7 +73,8 @@ export class CssPlugin {
   }
 
   public async apply(compiler: Compiler) {
-    if (this.mode === 'production') {
+    const mode = compiler.options.mode || 'development'
+    if (mode === 'production') {
       compiler.hooks.beforeRun.tapPromise(
         CssPlugin.name,
         async () => await this.configureOptions(compiler)

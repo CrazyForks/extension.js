@@ -6,6 +6,7 @@ import {type PluginInterface} from '../../../reload-types'
 import {type Manifest} from '../../../../webpack-types'
 import {type DevOptions} from '../../../../../commands/dev'
 import * as messages from '../../../../lib/messages'
+import * as utils from '../../../../lib/utils'
 
 export class TargetWebExtensionPlugin {
   private readonly manifestPath: string
@@ -23,48 +24,36 @@ export class TargetWebExtensionPlugin {
   ) {
     const minimumBgScript = path.resolve(
       __dirname,
-      browser === 'firefox'
+      browser === 'firefox' || browser === 'gecko-based'
         ? 'minimum-firefox-file.mjs'
         : 'minimum-chromium-file.mjs'
     )
+
     const dirname = path.dirname(this.manifestPath!)
+    let manifestBg: Record<string, any> | undefined =
+      utils.filterKeysForThisBrowser(manifest, browser)
 
-    let manifestBg: Record<string, any> | undefined = manifest.background
+    if (browser === 'firefox' || browser === 'gecko-based') {
+      manifestBg = manifest.background
 
-    if (browser === 'firefox') {
-      manifestBg =
-        manifest['gecko:background'] ||
-        manifest['firefox:background'] ||
-        manifestBg
-
-      const backgroundScripts =
-        manifestBg?.scripts ||
-        manifestBg?.['gecko:scripts'] ||
-        manifestBg?.['firefox:scripts']
+      const backgroundScripts = manifestBg?.scripts
 
       if (backgroundScripts && backgroundScripts.length > 0) {
-        const backgroundScriptPath = path.join(dirname, backgroundScripts[0])
-        this.ensureFileExists(backgroundScriptPath, 'background.scripts')
+        const backgroundScriptsPath = path.join(dirname, backgroundScripts[0])
+        this.ensureFileExists(backgroundScriptsPath)
       } else {
         this.addDefaultEntry(compiler, 'background/script', minimumBgScript)
       }
     } else {
-      manifestBg =
-        manifest[`chromium:background`] ||
-        manifest[`chrome:background`] ||
-        manifest[`edge:background`] ||
-        manifestBg
+      manifestBg = manifest.background
 
       if (manifest.manifest_version === 3) {
-        const serviceWorker =
-          manifestBg?.service_worker ||
-          manifestBg?.['chromium:service_worker'] ||
-          manifestBg?.['chrome:service_worker'] ||
-          manifestBg?.['edge:service_worker']
+        const serviceWorker = manifestBg?.service_worker
 
         if (serviceWorker) {
           const serviceWorkerPath = path.join(dirname, serviceWorker)
-          this.ensureFileExists(serviceWorkerPath, 'background.service_worker')
+
+          this.ensureFileExists(serviceWorkerPath)
         } else {
           this.addDefaultEntry(
             compiler,
@@ -73,15 +62,11 @@ export class TargetWebExtensionPlugin {
           )
         }
       } else if (manifest.manifest_version === 2) {
-        const backgroundScripts =
-          manifestBg?.scripts ||
-          manifestBg?.['chromium:scripts'] ||
-          manifestBg?.['chrome:scripts'] ||
-          manifestBg?.['edge:scripts']
+        const backgroundScripts = manifestBg?.scripts
 
         if (backgroundScripts && backgroundScripts.length > 0) {
           const backgroundScriptPath = path.join(dirname, backgroundScripts[0])
-          this.ensureFileExists(backgroundScriptPath, 'background.scripts')
+          this.ensureFileExists(backgroundScriptPath)
         } else {
           this.addDefaultEntry(compiler, 'background/script', minimumBgScript)
         }
@@ -89,16 +74,18 @@ export class TargetWebExtensionPlugin {
     }
   }
 
-  private ensureFileExists(filePath: string, fieldName: string) {
+  private ensureFileExists(filePath: string) {
     if (!fs.existsSync(filePath)) {
       if (this.manifestPath) {
-        const manifest: Manifest = require(this.manifestPath)
-        const manifestName = manifest.name || 'Extension.js'
-        const fieldError = messages.backgroundIsRequired(
-          manifestName,
-          fieldName,
-          filePath
+        const manifest = require(this.manifestPath)
+        const patchedManifest = utils.filterKeysForThisBrowser(
+          manifest,
+          'chrome'
         )
+
+        const manifestName = patchedManifest.name || 'Extension.js'
+
+        const fieldError = messages.backgroundIsRequired(manifestName, filePath)
         console.error(fieldError)
         throw new Error(fieldError)
       }
@@ -118,6 +105,10 @@ export class TargetWebExtensionPlugin {
 
   private getEntryName(manifest: Manifest) {
     if (manifest.background) {
+      if (this.browser === 'firefox' || this.browser === 'gecko-based') {
+        return {pageEntry: 'background/script'}
+      }
+
       if (manifest.manifest_version === 3) {
         return {serviceWorkerEntry: 'background/service_worker'}
       }
@@ -136,11 +127,15 @@ export class TargetWebExtensionPlugin {
     }
 
     const manifest: Manifest = require(this.manifestPath)
+    const patchedManifest = utils.filterKeysForThisBrowser(
+      manifest,
+      this.browser
+    )
 
-    this.handleBackground(compiler, this.browser, manifest)
+    this.handleBackground(compiler, this.browser, patchedManifest)
 
     new WebExtension({
-      background: this.getEntryName(manifest),
+      background: this.getEntryName(patchedManifest),
       weakRuntimeCheck: true
     }).apply(compiler)
   }

@@ -10,32 +10,34 @@ import {DevOptions} from '../../commands/dev'
 
 export function createProfile(
   browser: DevOptions['browser'],
-  profilePath?: string,
-  silent?: boolean
+  profilePath: string | undefined,
+  configPreferences: DevOptions['preferences']
 ) {
+  if (profilePath && fs.existsSync(profilePath)) {
+    return profilePath
+  }
+
   if (fs.existsSync(path.resolve(__dirname, `run-${browser}-profile`))) {
-    return profilePath || path.resolve(__dirname, `run-${browser}-profile`)
+    return path.resolve(__dirname, `run-${browser}-profile`)
   }
 
   const preferences =
     browser === 'chrome' ? chromeMasterPreferences : edgeMasterPreferences
 
-  const userProfile = JSON.stringify(preferences)
+  const userProfile = JSON.stringify({...preferences, ...configPreferences})
 
-  if (!silent) {
-    addProgressBar(messages.creatingUserProfile(browser), () => {
-      const profilePath = path.resolve(__dirname, `run-${browser}-profile`)
-      const preferences = path.join(profilePath, 'Default')
+  addProgressBar(messages.creatingUserProfile(browser), () => {
+    const profilePath = path.resolve(__dirname, `run-${browser}-profile`)
+    const preferences = path.join(profilePath, 'Default')
 
-      // Ensure directory exists
-      fs.mkdirSync(preferences, {recursive: true})
+    // Ensure directory exists
+    fs.mkdirSync(preferences, {recursive: true})
 
-      const preferencesPath = path.join(preferences, 'Preferences')
+    const preferencesPath = path.join(preferences, 'Preferences')
 
-      // Actually write the user preferences
-      fs.writeFileSync(preferencesPath, userProfile, 'utf8')
-    })
-  }
+    // Actually write the user preferences
+    fs.writeFileSync(preferencesPath, userProfile, 'utf8')
+  })
 
   return path.resolve(__dirname, `run-${browser}-profile`)
 }

@@ -19,17 +19,28 @@ import {ReloadPlugin} from './plugin-reload'
 import {CompatibilityPlugin} from './plugin-compatibility'
 import {ErrorsPlugin} from './plugin-errors'
 import {BrowsersPlugin} from '../plugin-browsers'
+import * as utils from './lib/utils'
 
 export default function webpackConfig(
   projectPath: string,
   devOptions: DevOptions
 ): webpack.Configuration {
   const manifestPath = path.join(projectPath, 'manifest.json')
+  const manifest = utils.filterKeysForThisBrowser(
+    require(manifestPath),
+    devOptions.browser
+  )
   const userExtensionOutputPath = path.join(
     projectPath,
     `dist/${devOptions.browser}`
   )
-  const manifest = require(manifestPath)
+
+  const browser = devOptions.chromiumBinary
+    ? 'chromium-based'
+    : devOptions.geckoBinary
+      ? 'gecko-based'
+      : devOptions.browser
+
   return {
     mode: devOptions.mode || 'development',
     entry: {},
@@ -45,7 +56,7 @@ export default function webpackConfig(
           // Avoids deleting the hot-update files for the content scripts.
           // This is a workaround for the issue described
           // in https://github.com/cezaraugusto/extension.js/issues/35.
-          // These HMR assets are eventually deleted by CleanHotUpdatesPlugin when webpack starts.
+          // These HMR assets are eventually deleted by CleanDistFolderPlugin when webpack starts.
           return !asset.startsWith('hot/background')
         }
       },
@@ -84,38 +95,35 @@ export default function webpackConfig(
     },
     plugins: [
       new CompilationPlugin({
-        manifestPath
+        manifestPath,
+        browser
       }),
       new StaticAssetsPlugin({
-        manifestPath,
-        mode: devOptions.mode
+        manifestPath
       }),
       new CssPlugin({
-        manifestPath,
-        mode: devOptions.mode
+        manifestPath
       }),
       new JsFrameworksPlugin({
-        manifestPath,
-        mode: devOptions.mode
+        manifestPath
       }),
-      process.env.EXTENSION_ENV === 'development' &&
+      process.env.EXPERIMENTAL_ERRORS_PLUGIN === 'true' &&
         new ErrorsPlugin({
           manifestPath,
-          browser: devOptions.browser
+          browser
         }),
       new CompatibilityPlugin({
         manifestPath,
-        browser: devOptions.browser,
+        browser,
         polyfill: devOptions.polyfill
       }),
       new ExtensionPlugin({
         manifestPath,
-        browser: devOptions.browser,
-        mode: devOptions.mode
+        browser
       }),
       new ReloadPlugin({
         manifestPath,
-        browser: devOptions.browser,
+        browser,
         stats: true,
         port: devOptions.port || 8000
       }),
@@ -123,17 +131,15 @@ export default function webpackConfig(
         new BrowsersPlugin({
           extension: [
             userExtensionOutputPath,
-            path.join(
-              __dirname,
-              'extensions',
-              `${devOptions.browser}-manager-extension`
-            )
+            path.join(__dirname, 'extensions', `${browser}-manager-extension`)
           ],
-          browser: devOptions.browser,
+          browser,
           startingUrl: devOptions.startingUrl,
           profile: devOptions.profile || devOptions.userDataDir,
           preferences: devOptions.preferences,
-          browserFlags: devOptions.browserFlags
+          browserFlags: devOptions.browserFlags,
+          chromiumBinary: devOptions.chromiumBinary,
+          geckoBinary: devOptions.geckoBinary
         })
     ].filter(Boolean),
     stats: {

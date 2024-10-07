@@ -221,7 +221,8 @@ describe('getManifestFieldsData', () => {
         'images/my-image.png',
         'script.js',
         'styles.css'
-      ]
+      ],
+      locales: []
     })
   })
 
@@ -325,7 +326,8 @@ describe('getManifestFieldsData', () => {
           matches: ['https://google.com/*'],
           resources: ['images/my-image2.png', 'script2.js', 'styles2.css']
         }
-      ]
+      ],
+      locales: []
     })
   })
 })

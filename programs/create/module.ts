@@ -11,15 +11,16 @@ import {writeManifestJson} from './steps/write-manifest-json'
 import {generateExtensionTypes} from './steps/generate-extension-types'
 import {writeGitignore} from './steps/write-gitignore'
 import {initializeGitRepository} from './steps/initialize-git-repository'
+import {setupBuiltInTests} from './steps/setup-built-in-tests'
 
 export interface CreateOptions {
   template: string
-  noInstall?: boolean
+  install?: boolean
 }
 
 export async function extensionCreate(
   projectNameInput: string | undefined,
-  {template = 'init', noInstall = false}: CreateOptions
+  {template = 'init', install = true}: CreateOptions
 ) {
   if (!projectNameInput) {
     throw new Error(messages.noProjectName())
@@ -47,7 +48,7 @@ export async function extensionCreate(
 
     await overridePackageJson(projectPath, projectName, template)
 
-    if (!noInstall) {
+    if (install) {
       await installDependencies(projectPath, projectName)
     }
 
@@ -55,6 +56,7 @@ export async function extensionCreate(
     await writeManifestJson(projectPath, projectName)
     await initializeGitRepository(projectPath, projectName)
     await writeGitignore(projectPath)
+    await setupBuiltInTests(projectPath, projectName)
 
     if (utils.isTypeScriptTemplate(template)) {
       await generateExtensionTypes(projectPath, projectName)

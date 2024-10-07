@@ -7,7 +7,7 @@
 
 import fs from 'fs/promises'
 import path from 'path'
-import {detect} from 'detect-package-manager'
+import {detect} from 'package-manager-detector'
 import * as messages from './messages'
 
 export async function copyDirectory(source: string, destination: string) {
@@ -31,17 +31,23 @@ export async function copyDirectory(source: string, destination: string) {
 export async function getInstallCommand() {
   const pm = await detect()
 
-  let command = 'npm run'
+  let command = 'npm'
 
-  switch (pm) {
+  if (process.env.npm_config_user_agent) {
+    if (process.env.npm_config_user_agent.includes('pnpm')) {
+      return 'pnpm'
+    }
+  }
+
+  switch (pm?.name) {
     case 'yarn':
       command = 'yarn'
       break
     case 'pnpm':
-      command = 'pnpm run'
+      command = 'pnpm'
       break
     default:
-      command = 'npm run'
+      command = 'npm'
   }
 
   return command
@@ -73,13 +79,11 @@ export function isExternalTemplate(templateName: string) {
 }
 
 export function isTypeScriptTemplate(templateName: string) {
-  if (isExternalTemplate(templateName)) {
-    return false
-  }
-
   return (
-    templateName === 'typescript' ||
-    templateName.startsWith('typescript-') ||
-    templateName.endsWith('-typescript')
+    templateName.includes('typescript') ||
+    templateName.includes('react') ||
+    templateName.includes('preact') ||
+    templateName.includes('svelte') ||
+    templateName.includes('solid')
   )
 }

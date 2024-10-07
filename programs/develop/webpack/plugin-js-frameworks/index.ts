@@ -1,40 +1,41 @@
 import path from 'path'
 import {type Compiler} from 'webpack'
 import {PluginInterface} from '../webpack-types'
-import {type DevOptions} from '../../commands/dev'
+import TsconfigPathsPlugin from 'tsconfig-paths-webpack-plugin'
 import {maybeUseBabel} from './js-tools/babel'
 import {isUsingPreact, maybeUsePreact} from './js-tools/preact'
 import {isUsingReact, maybeUseReact} from './js-tools/react'
 import {maybeUseVue} from './js-tools/vue'
 import {isUsingTypeScript} from './js-tools/typescript'
+import {maybeUseSvelte} from './js-tools/svelte'
 // import {maybeUseAngular} from './js-tools/angular'
-// import {maybeUseSvelte} from './js-tools/svelte'
 // import {maybeUseSolid} from './js-tools/solid'
 
 export class JsFrameworksPlugin {
   public static readonly name: string = 'plugin-js-frameworks'
 
   public readonly manifestPath: string
-  public readonly mode: DevOptions['mode']
 
-  constructor(options: PluginInterface & {mode: DevOptions['mode']}) {
+  constructor(options: PluginInterface) {
     this.manifestPath = options.manifestPath
-    this.mode = options.mode
   }
 
   private async configureOptions(compiler: Compiler) {
+    const mode = compiler.options.mode || 'development'
     const projectPath = path.dirname(this.manifestPath)
 
     const maybeInstallBabel = await maybeUseBabel(compiler, projectPath)
     const maybeInstallReact = await maybeUseReact(projectPath)
     const maybeInstallPreact = await maybeUsePreact(projectPath)
     const maybeInstallVue = await maybeUseVue(projectPath)
+    const maybeInstallSvelte = await maybeUseSvelte(projectPath)
 
     compiler.options.resolve.alias = {
       ...(maybeInstallBabel?.alias || {}),
       ...(maybeInstallReact?.alias || {}),
       ...(maybeInstallPreact?.alias || {}),
       ...(maybeInstallVue?.alias || {}),
+      ...(maybeInstallSvelte?.alias || {}),
       ...compiler.options.resolve.alias
     }
 
@@ -50,7 +51,7 @@ export class JsFrameworksPlugin {
             module: {
               type: 'es6'
             },
-            minify: this.mode === 'production',
+            minify: mode === 'production',
             isModule: true,
             jsc: {
               target: 'es2016',
@@ -68,8 +69,8 @@ export class JsFrameworksPlugin {
               },
               transform: {
                 react: {
-                  development: this.mode === 'development',
-                  refresh: this.mode === 'development',
+                  development: mode === 'development',
+                  refresh: mode === 'development',
                   runtime: 'automatic',
                   importSource: 'react'
                 }
@@ -82,16 +83,30 @@ export class JsFrameworksPlugin {
       ...(maybeInstallReact?.loaders || []),
       ...(maybeInstallPreact?.loaders || []),
       ...(maybeInstallVue?.loaders || []),
+      ...(maybeInstallSvelte?.loaders || []),
       ...compiler.options.module.rules
     ].filter(Boolean)
 
     maybeInstallReact?.plugins?.forEach((plugin) => plugin.apply(compiler))
     maybeInstallPreact?.plugins?.forEach((plugin) => plugin.apply(compiler))
     maybeInstallVue?.plugins?.forEach((plugin) => plugin.apply(compiler))
+    maybeInstallSvelte?.plugins?.forEach((plugin) => plugin.apply(compiler))
+
+    if (isUsingTypeScript(projectPath)) {
+      compiler.options.resolve.plugins = [
+        new TsconfigPathsPlugin({
+          configFile: path.resolve(
+            path.dirname(this.manifestPath),
+            'tsconfig.json'
+          )
+        })
+      ]
+    }
   }
 
   public async apply(compiler: Compiler) {
-    if (this.mode === 'production') {
+    const mode = compiler.options.mode || 'development'
+    if (mode === 'production') {
       compiler.hooks.beforeRun.tapPromise(
         JsFrameworksPlugin.name,
         async () => await this.configureOptions(compiler)

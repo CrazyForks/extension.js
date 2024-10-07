@@ -1,7 +1,8 @@
 {
+  "$schema": "https://json.schemastore.org/chrome-manifest.json",
   "manifest_version": 3,
   "version": "0.0.1",
-  "name": "content-extension-config",
+  "name": "Content Scripts Extension Config",
   "description": "An Extension.js example.",
   "background": {
     "chromium:service_worker": "background.ts",
@@ -14,8 +15,6 @@
     }
   ],
   "icons": {
-    "16": "images/extension_16.png",
-    "48": "images/extension_48.png",
-    "128": "images/extension_128.png"
+    "48": "images/extension_48.png"
   }
 }

@@ -6,12 +6,9 @@ export function firefoxRunningServiceWorkerError(
   manifest: Manifest,
   browser: string
 ): webpack.WebpackError | null {
-  if (browser === 'firefox') {
+  if (browser === 'firefox' || browser === 'gecko-based') {
     if (manifest.background?.service_worker) {
-      const manifestName = manifest.name || 'Extension.js'
-      return new webpack.WebpackError(
-        messages.firefoxServiceWorkerError(manifestName)
-      )
+      return new webpack.WebpackError(messages.firefoxServiceWorkerError())
     }
   }
 

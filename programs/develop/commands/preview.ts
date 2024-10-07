@@ -1,9 +1,9 @@
-// ██████╗ ███████╗██╗   ██╗███████╗██╗      ██████╗ ██████╗
-// ██╔══██╗██╔════╝██║   ██║██╔════╝██║     ██╔═══██╗██╔══██╗
-// ██║  ██║█████╗  ██║   ██║█████╗  ██║     ██║   ██║██████╔╝
-// ██║  ██║██╔══╝  ╚██╗ ██╔╝██╔══╝  ██║     ██║   ██║██╔═══╝
-// ██████╔╝███████╗ ╚████╔╝ ███████╗███████╗╚██████╔╝██║
-// ╚═════╝ ╚══════╝  ╚═══╝  ╚══════╝╚══════╝ ╚═════╝ ╚═╝
+// ██████╗ ██████╗ ███████╗██╗   ██╗██╗███████╗██╗    ██╗
+// ██╔══██╗██╔══██╗██╔════╝██║   ██║██║██╔════╝██║    ██║
+// ██████╔╝██████╔╝█████╗  ██║   ██║██║█████╗  ██║ █╗ ██║
+// ██╔═══╝ ██╔══██╗██╔══╝  ╚██╗ ██╔╝██║██╔══╝  ██║███╗██║
+// ██║     ██║  ██║███████╗ ╚████╔╝ ██║███████╗╚███╔███╔╝
+// ╚═╝     ╚═╝  ╚═╝╚══════╝  ╚═══╝  ╚═╝╚══════╝ ╚══╝╚══╝
 
 import fs from 'fs'
 import path from 'path'
@@ -15,10 +15,7 @@ import * as messages from './commands-lib/messages'
 import {loadExtensionConfig} from './commands-lib/get-extension-config'
 import {DevOptions} from './dev'
 
-export interface PreviewOptions {
-  browser: DevOptions['browser']
-  userDataDir?: string
-}
+export interface PreviewOptions extends DevOptions {}
 
 export async function extensionPreview(
   pathOrRemoteUrl: string | undefined,
@@ -30,7 +27,9 @@ export async function extensionPreview(
     !pathOrRemoteUrl?.startsWith('http') &&
     !fs.existsSync(path.join(projectPath, 'manifest.json'))
   ) {
-    console.log(messages.manifestNotFoundError())
+    console.log(
+      messages.manifestNotFoundError(path.join(projectPath, 'manifest.json'))
+    )
     process.exit(1)
   }
 

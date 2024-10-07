@@ -1,17 +1,14 @@
-import extensionJsLogo from '../images/extension_128.png'
 import './styles.css'
-
-console.log('hello from content_scripts')
+import logo from '../images/extension.svg'
 
 document.body.innerHTML += `
-<div class="content_script-box">
-  <img class="content_script-logo" src=${extensionJsLogo} />
-  <h1 class="content_script-title">
-    Change the background-color ⬇
+<div class="content_script">
+  <img class="content_logo" src="${logo}" />
+  <h1 class="content_title">
+    Main World
   </h1>
-  <input type="color" class="content_script-colorPicker" id="colorPicker">
-  <p class="content_script-description">
-    Learn more about creating browser extensions at <a
+  <p class="content_description">
+    Learn more about creating cross-browser extensions at <a
       className="underline hover:no-underline"
       href="https://extension.js.org"
       target="_blank"
@@ -21,12 +18,3 @@ document.body.innerHTML += `
   </p>
 </div>
 `
-
-document.getElementById('colorPicker').addEventListener('input', (event) => {
-  chrome.runtime
-    .sendMessage({
-      action: 'changeBackgroundColor',
-      color: event.target.value
-    })
-    .catch(console.error)
-})
